@@ -17,5 +17,4 @@ function LibStub:GetLibrary(name, silent)
     return lib
 end
 
-_G.LibStub = LibStub
 return LibStub

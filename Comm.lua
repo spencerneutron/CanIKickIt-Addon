@@ -1,12 +1,16 @@
 local NS = select(2, ...)
-local AceComm = LibStub("AceComm-3.0")
+local AceComm = (LibStub and LibStub.GetLibrary) and LibStub:GetLibrary("AceComm-3.0", true)
 
 local DIST = { party="PARTY" , raid="RAID", inst="INSTANCE_CHAT" }
 
 function NS.Comm_Init()
   -- AceComm receiver setup only; Core handles prefix registration
-  AceComm:Embed(NS)
-  NS:RegisterComm(NS.PREFIX, "Comm_OnMessage")
+  if AceComm then
+    AceComm:Embed(NS)
+    NS:RegisterComm(NS.PREFIX, "Comm_OnMessage")
+  else
+    NS:Log("AceComm not available; comm disabled")
+  end
 end
 
 -- choose distribution based on current group

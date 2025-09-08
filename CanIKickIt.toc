@@ -4,11 +4,10 @@
 ## Author: Boolbog
 ## Version: 0.1.0
 ## SavedVariables: CanIKickItDB
-## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0
 
-Lib/LibStub.lua
-Lib/CallbackHandler-1.0.lua
-Lib/AceComm-3.0.lua
+Libs/LibStub.lua
+Libs/CallbackHandler-1.0.lua
+Libs/AceComm-3.0.lua
 
 Core.lua
 Config.lua
