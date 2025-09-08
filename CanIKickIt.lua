@@ -1,12 +1,11 @@
-local addonName, addon = ...
+-- Root loader stub: the real addon files live under Interface/AddOns/CanIKickIt/
+-- Keep this file for compatibility when loading from the repository root.
 
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("ADDON_LOADED")
+-- noop loader: real implementation is vendored under Interface/AddOns/CanIKickIt/
+local addonName = ...
 
-frame:SetScript("OnEvent", function(self, event, ...)
-    if event == "ADDON_LOADED" and ... == addonName then
-        -- Initialization placeholder
-        self:UnregisterEvent("ADDON_LOADED")
-    end
-end)
+-- nothing to do here; the TOC points to Interface/AddOns/CanIKickIt/CanIKickIt.toc for runtime
+-- this file remains as a placeholder for development utilities
+
+return
 

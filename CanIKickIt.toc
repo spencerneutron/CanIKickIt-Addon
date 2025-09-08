@@ -4,4 +4,4 @@
 ## Author: CanIKickIt Team
 ## Version: @project-version@
 
-CanIKickIt.lua
+Interface\AddOns\CanIKickIt\CanIKickIt.toc
