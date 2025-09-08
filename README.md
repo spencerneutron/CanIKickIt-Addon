@@ -38,15 +38,4 @@ This document outlines the intended behaviour so development can proceed with a
 clear reference of the addon's goals. Implementation details may evolve, but the
 core principles above should remain consistent.
 
-
-CanIKickIt addon scaffold
-
-Files:
-  Core.lua - initialization + macro entry
-  Comm.lua - comm handling via AceComm
-  Events.lua - central event broker
-  Targeting.lua - unit GUID helpers
-  Nameplates.lua - simple pooling & helpers
-  Cooldowns.lua - per-player interrupt cooldown tracking
-  Interrupts.lua - derive cooldowns from combat log
-  Libs/* - vendored minimal libs (LibStub, CallbackHandler, AceComm)
+Utilizes AceComm-3.0 to send and receive addon messages between users.
