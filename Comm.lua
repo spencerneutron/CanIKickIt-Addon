@@ -29,10 +29,11 @@ function NS.Comm_SendAssign(guid, spellID, player, ts)
     NS:Log("Comm_SendAssign: no distribution available; not sending", guid, spellID, player)
     return
   end
-  local payload = NS.Encode({"assign", guid, spellID, player, ts})
-  NS:Log("Comm_SendAssign: sending", guid, spellID, player, "dist="..tostring(dist))
+  local canon = NS.ResolveSpellID(spellID) or spellID
+  local payload = NS.Encode({"assign", guid, canon, player, ts})
+  NS:Log("Comm_SendAssign: sending", guid, canon, player, "dist="..tostring(dist))
   NS:SendCommMessage(NS.PREFIX, payload, dist)
-  NS:Log("TX assign", guid, spellID, player)
+  NS:Log("TX assign", guid, canon, player)
 end
 
 function NS.Comm_SendCD(spellID, player, startedAt, duration)
@@ -45,10 +46,11 @@ function NS.Comm_SendCD(spellID, player, startedAt, duration)
     NS:Log("Comm_SendCD: no distribution available; not sending", spellID, player)
     return
   end
-  local payload = NS.Encode({"cd", spellID, player, startedAt, duration})
-  NS:Log("Comm_SendCD: sending", spellID, player, "dist="..tostring(dist))
+  local canon = NS.ResolveSpellID(spellID) or spellID
+  local payload = NS.Encode({"cd", canon, player, startedAt, duration})
+  NS:Log("Comm_SendCD: sending", canon, player, "dist="..tostring(dist))
   NS:SendCommMessage(NS.PREFIX, payload, dist)
-  NS:Log("TX cd", spellID, player)
+  NS:Log("TX cd", canon, player)
 end
 
 function NS:Comm_OnMessage(prefix, msg, dist, sender)

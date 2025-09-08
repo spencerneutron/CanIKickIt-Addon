@@ -70,6 +70,41 @@ end
 
 for _, e in ipairs(NS.INTERRUPTS) do addIndex(e) end
 
+-- Support merged/alternate cast IDs that represent the same interrupt
+-- e.g., Command Demon / Spell Lock and other aliases OmniCD merges to 119898
+local MERGED_INTERRUPT = {
+  [19647]  = 119898,
+  [119910] = 119898,
+  [132409] = 119898,
+  [6358]   = 119898,
+  [261589] = 119898,
+  [89808]  = 119898,
+  [119905] = 119898,
+  [132411] = 119898,
+  [89766]  = 119898,
+  [119914] = 119898,
+  [347008] = 119898,
+  -- Example: alternate ID mapping for Ghoul leap
+  [91807]  = 47482,
+}
+
+for fromID, toID in pairs(MERGED_INTERRUPT) do
+  local entry = NS.INTERRUPT_BY_SPELLID[toID]
+  if entry then
+    NS.INTERRUPT_BY_SPELLID[fromID] = entry
+  end
+end
+
+-- Provide a canonicalization helper for spell IDs so all modules use the same id
+function NS.ResolveSpellID(spellID)
+  local id = tonumber(spellID)
+  if not id then return spellID end
+  if MERGED_INTERRUPT and MERGED_INTERRUPT[id] then
+    return MERGED_INTERRUPT[id]
+  end
+  return id
+end
+
 -- Utility: does this entry apply to the given spec?
 local function specMatches(entry, currentSpecId)
   if entry.spec == nil then return true end

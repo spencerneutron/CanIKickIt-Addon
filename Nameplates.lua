@@ -235,6 +235,7 @@ local function AcquireIcon(parent, index)
 end
 
 local function SpellIcon(spellID, guid)
+  spellID = NS.ResolveSpellID(spellID) or spellID
   -- 1) Preferred: C_Spell.GetSpellInfo() table with iconID
   if C_Spell and C_Spell.GetSpellInfo then
     local info = C_Spell.GetSpellInfo(spellID)
