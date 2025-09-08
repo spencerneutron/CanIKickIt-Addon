@@ -46,7 +46,13 @@ function NS:Comm_OnMessage(prefix, msg, dist, sender)
 
   if t == "assign" then
     local guid, spellID, player, ts = parts[2], tonumber(parts[3]), parts[4], tonumber(parts[5])
-    NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
+    -- only handle assigns from other players (ignore our own echoes)
+    if player ~= me then
+      NS:Log("RX assign", guid, spellID, player, sender)
+      NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
+    else
+      NS:Log("Ignored assign from self", guid, spellID, player, sender)
+    end
 
   elseif t == "cd" then
     local spellID, player, startedAt, duration = tonumber(parts[2]), parts[3], tonumber(parts[4]), tonumber(parts[5])
