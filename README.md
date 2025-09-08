@@ -43,4 +43,4 @@ Files:
   Nameplates.lua - simple pooling & helpers
   Cooldowns.lua - per-player interrupt cooldown tracking
   Interrupts.lua - derive cooldowns from combat log
-  Lib/* - vendored minimal libs (LibStub, CallbackHandler, AceComm)
+  Libs/* - vendored minimal libs (LibStub, CallbackHandler, AceComm)
