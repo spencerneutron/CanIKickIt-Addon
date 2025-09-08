@@ -1,29 +1,101 @@
+-- Core.lua
 local ADDON, NS = ...
-_G.CanIKickIt = NS
+_G.CanIKickIt = NS  -- optional: expose for /dump etc.
 
 NS.ADDON_NAME = ADDON
-NS.PREFIX = "CIKI"            -- addon comm prefix
-NS.VERSION = "0.1.0"
+NS.PREFIX     = "CIKI"
+NS.VERSION    = "0.1.0"
 
--- SavedVariables defaults
+-- SavedVariables root (created by TOC: ## SavedVariables: CanIKickItDB)
 CanIKickItDB = CanIKickItDB or {}
 NS.DB = CanIKickItDB
 
--- simple logger
+-- simple logger (guarded)
 function NS:Log(...)
   if NS.DB.debug then
     print("|cff66cfffCIKI|r:", ...)
   end
 end
 
--- lifecycle
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function()
-  NS.InitConfig()            -- Config.lua
-  NS.Comm_Init()             -- Comm.lua
-  NS.Events_Init()           -- Events.lua
-  NS.Nameplates_Init()       -- Nameplates.lua
-  NS.Cooldowns_Init()        -- Cooldowns.lua
-  NS:Log("Loaded v" .. NS.VERSION)
-end)
+-- single hidden event frame + dispatcher
+local E = CreateFrame("Frame")
+NS._eventFrame = E
+
+local function OnEvent(_, event, ...)
+  if event == "ADDON_LOADED" then
+    local name = ...
+    if name == NS.ADDON_NAME then
+      E:UnregisterEvent("ADDON_LOADED")
+      -- SV defaults & tiny config init are safe here
+      NS.InitConfig()              -- Config.lua: sets defaults, no world calls
+      -- Keep heavy work deferred
+      -- Register world-ready events once:
+      E:RegisterEvent("PLAYER_ENTERING_WORLD")
+      E:RegisterEvent("PLAYER_LEAVING_WORLD")
+      E:RegisterEvent("GROUP_ROSTER_UPDATE")
+      E:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+      E:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+      E:RegisterEvent("PLAYER_TALENT_UPDATE")
+      NS:Log("ADDON_LOADED ok")
+    end
+
+  elseif event == "PLAYER_ENTERING_WORLD" then
+    -- Arguments: isLogin, isReload
+    local isLogin, isReload = ...
+    -- Now it’s safe to touch comms, plates, etc.
+    C_ChatInfo.RegisterAddonMessagePrefix(NS.PREFIX)  -- required even with AceComm
+    NS.Comm_Init()            -- Comm.lua (AceComm:Embed + RegisterComm)
+    NS.Events_Init()          -- Events.lua (register CL & nameplate events)
+    NS.Nameplates_Init()      -- Nameplates.lua (local caches/frames only)
+    NS.Cooldowns_Init()       -- Cooldowns.lua (tables only)
+    -- Optional: tiny defer to let frames settle before first refresh
+    C_Timer.After(0, function()
+      NS.RecomputePlayerInterrupts()  -- see function below
+      NS.RefreshAllVisiblePlates()    -- see function below
+    end)
+    NS:Log("PLAYER_ENTERING_WORLD (login="..tostring(isLogin)..", reload="..tostring(isReload)..")")
+
+  elseif event == "PLAYER_LEAVING_WORLD" then
+    -- Drop transient state tied to current instance/zone (not SV)
+    NS.ClearTransientState()          -- you implement: clear assignment caches if desired
+
+  elseif event == "GROUP_ROSTER_UPDATE" or event == "ZONE_CHANGED_NEW_AREA" then
+    -- Group/instance context changed: light recompute
+    NS.RecomputePlayerInterrupts()
+    NS.RefreshAllVisiblePlates()
+
+  elseif event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" then
+    -- Player spec/talents changed: update preferred interrupt + table lookups
+    local unit = ...
+    if not unit or unit == "player" then
+      NS.RecomputePlayerInterrupts()
+    end
+  end
+end
+
+E:SetScript("OnEvent", OnEvent)
+E:RegisterEvent("ADDON_LOADED")
+
+-- ------- helpers that DO NOT touch the world at file load time -------------
+
+function NS.RecomputePlayerInterrupts()
+  -- forces a new preferred interrupt + caches (cheap)
+  if NS.GetPreferredInterruptForPlayer then
+    NS._preferredInterrupt = NS.GetPreferredInterruptForPlayer()
+    NS:Log("Preferred interrupt:", NS._preferredInterrupt and NS._preferredInterrupt.name or "none")
+  end
+end
+
+function NS.RefreshAllVisiblePlates()
+  -- Safe call into your nameplate module to redraw current plates
+  if NS.Nameplates_RefreshAll then
+    NS.Nameplates_RefreshAll()
+  end
+end
+
+function NS.ClearTransientState()
+  -- e.g., wipe assignment lists if they should not persist across zones
+  if NS.Assignments_Clear then
+    NS.Assignments_Clear()
+  end
+end

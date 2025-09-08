@@ -1,8 +1,9 @@
 local NS = select(2, ...)
-
-local f = CreateFrame("Frame")
+local f
 
 function NS.Events_Init()
+  if f then return end  -- idempotent
+  f = CreateFrame("Frame")
   f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
   f:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
   f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")

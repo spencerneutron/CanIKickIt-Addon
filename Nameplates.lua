@@ -3,7 +3,9 @@ local NS = select(2, ...)
 local pool = {}              -- guid -> frame
 local assignments = {}       -- guid -> { {player, spellID, ts}, ... }
 
-function NS.Nameplates_Init() end
+function NS.Nameplates_Init() 
+    -- nothing to do here; frames are created on demand
+end
 
 local function GetPlate(unit)
   return C_NamePlate.GetNamePlateForUnit(unit)
@@ -112,5 +114,16 @@ function NS.Nameplates_Refresh(guid)
   -- hide unused icons
   for i = idx, #f.icons do
     f.icons[i]:Hide()
+  end
+end
+
+function NS.Nameplates_RefreshAll()
+  -- iterate visible nameplates and call existing refresh logic
+  for _, plate in pairs(C_NamePlate.GetNamePlates() or {}) do
+    local unit = plate.namePlateUnitToken
+    if unit then
+      local guid = UnitGUID(unit)
+      if guid then NS.Nameplates_Refresh(guid) end
+    end
   end
 end

@@ -4,9 +4,7 @@ local AceComm = LibStub("AceComm-3.0")
 local DIST = { party="PARTY" , raid="RAID", inst="INSTANCE_CHAT" }
 
 function NS.Comm_Init()
-  -- Blizzard requires prefix registration
-  C_ChatInfo.RegisterAddonMessagePrefix(NS.PREFIX)
-  -- AceComm receiver
+  -- AceComm receiver setup only; Core handles prefix registration
   AceComm:Embed(NS)
   NS:RegisterComm(NS.PREFIX, "Comm_OnMessage")
 end
