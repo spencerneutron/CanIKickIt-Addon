@@ -86,8 +86,22 @@ local function AcquireIcon(parent, index)
 end
 
 local function SpellIcon(spellID)
-  local icon = select(3, GetSpellInfo(spellID))
-  return icon
+  -- safe retrieval of a spell icon: prefer global GetSpellInfo, then C_Spell.GetSpellInfo, then GetSpellTexture
+  if type(GetSpellInfo) == "function" then
+    local _, _, icon = GetSpellInfo(spellID)
+    return icon
+  end
+
+  if type(C_Spell) == "table" and type(C_Spell.GetSpellInfo) == "function" then
+    local _, _, icon = C_Spell.GetSpellInfo(spellID)
+    return icon
+  end
+
+  if type(GetSpellTexture) == "function" then
+    return GetSpellTexture(spellID)
+  end
+
+  return nil
 end
 
 function NS.Nameplates_Refresh(guid)
