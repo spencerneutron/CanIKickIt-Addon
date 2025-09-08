@@ -41,6 +41,68 @@ local function ResolvePetOwner(srcGUID)
   return petOwnerCache[srcGUID]
 end
 
+-- Reconcile local player's interrupt cooldowns with the game's cooldowns
+local cooldownsReconcileScheduled = false
+local cooldownsReconcileDelay = 0.25 -- 250ms debounce
+local cooldownsReconcileTolerance = 0.5 -- seconds
+
+local function ReconcileLocalCooldowns()
+  cooldownsReconcileScheduled = false
+  NS:Log("ReconcileLocalCooldowns: start")
+  local playerName = UnitName("player")
+  local watched = NS.GetPlayerInterrupts and NS.GetPlayerInterrupts() or {}
+
+  for _, entry in ipairs(watched) do
+    local sid = tonumber(NS.ResolveSpellID(entry.spellID) or entry.spellID)
+    if not sid then
+      NS:Log("ReconcileLocalCooldowns: bad sid for entry", tostring(entry.spellID))
+    else
+      -- Use only C_Spell.GetSpellCooldown per runtime contract
+      local info = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(sid) or nil
+
+      if not info then
+        NS:Log("ReconcileLocalCooldowns: no cooldown info for", sid)
+      else
+        -- info is a table: { startTime, duration, isEnabled, modRate, activeCategory }
+        local st = info.startTime
+        local dur = info.duration
+        local enabled = info.isEnabled
+
+        if st and dur and enabled and dur > 0 then
+          local readyAt = st + dur
+          local _, _, storedReady = NS.Cooldowns_GetInfo(playerName, sid)
+          if not storedReady or math.abs((storedReady or 0) - readyAt) > cooldownsReconcileTolerance then
+            NS:Log("ReconcileLocalCooldowns: update", sid, "st=", st, "dur=", dur, "readyAt=", readyAt)
+            -- apply authoritative API values locally
+            NS.Cooldowns_OnRemoteCD(sid, playerName, st, dur)
+            -- broadcast only if syncing enabled
+            if NS.DB and NS.DB.syncMode then
+              NS:Log("ReconcileLocalCooldowns: broadcast", sid)
+              NS.Comm_SendCD(sid, playerName, st, dur)
+            end
+          else
+            NS:Log("ReconcileLocalCooldowns: no meaningful change for", sid)
+          end
+        else
+          NS:Log("ReconcileLocalCooldowns: spell ready or not enabled", sid, "dur=", tostring(dur), "enabled=", tostring(enabled))
+        end
+      end
+    end
+  end
+
+  NS:Log("ReconcileLocalCooldowns: done")
+end
+
+local function ScheduleReconcileLocalCooldowns()
+  if cooldownsReconcileScheduled then return end
+  cooldownsReconcileScheduled = true
+  if C_Timer and C_Timer.After then
+    C_Timer.After(cooldownsReconcileDelay, ReconcileLocalCooldowns)
+  else
+    ReconcileLocalCooldowns()
+  end
+end
+
 function NS.Events_Init()
   if f then return end  -- idempotent
   f = CreateFrame("Frame")
@@ -49,6 +111,7 @@ function NS.Events_Init()
   f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
   f:RegisterEvent("GROUP_ROSTER_UPDATE")
   f:RegisterEvent("UNIT_PET")
+  f:RegisterEvent("SPELL_UPDATE_COOLDOWN")
   f:SetScript("OnEvent", function(_, evt, ...)
     if evt == "NAME_PLATE_UNIT_ADDED" then
       NS.Nameplates_OnAdded(...)
@@ -59,6 +122,8 @@ function NS.Events_Init()
     elseif evt == "GROUP_ROSTER_UPDATE" or evt == "UNIT_PET" then
       -- refresh pet-owner mapping for quick lookup
       BuildPetOwnerCache()
+    elseif evt == "SPELL_UPDATE_COOLDOWN" then
+      ScheduleReconcileLocalCooldowns()
     end
   end)
 
