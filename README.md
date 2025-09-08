@@ -3,8 +3,14 @@
 CanIKickIt is a World of Warcraft addon focused on organizing group interrupts.
 It helps players assign themselves to specific enemies, synchronizes these
 assignments with other users of the addon, and shows the interrupt order on
-nameplates. The intent is to provide lightweight coordination similar to what
-custom WeakAura packs offer without requiring additional manual setup.
+nameplates.
+
+Macro Usage
+
+Run this call after you have focused an enemy you intend to interrupt, or are targeting one if not using focus on a hostile.
+```
+/run CanIKickIt.AssignIntent()
+```
 
 ## Core behaviour
 
