@@ -101,6 +101,15 @@ end
 -- -----------------------------------------------------------------------------
 function NS.Assignments_Add(guid, spellID, player, ts)
   NS:Log("Assignments_Add", guid, spellID, player, ts)
+  -- Purge any previous assignments for this player
+  for g, list in pairs(assignments) do
+    for i = #list, 1, -1 do
+      if list[i].player == player then
+        table.remove(list, i)
+        dirty[g] = true
+      end
+    end
+  end
   assignments[guid] = assignments[guid] or {}
   table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts })
   dirty[guid] = true
