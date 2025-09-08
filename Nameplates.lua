@@ -1,28 +1,116 @@
-local addonName, CanIKickIt = ...
-local Nameplates = {}
+local NS = select(2, ...)
 
--- Simple nameplate frame pooling helper
-Nameplates.pool = Nameplates.pool or {}
+local pool = {}              -- guid -> frame
+local assignments = {}       -- guid -> { {player, spellID, ts}, ... }
 
-function Nameplates:Acquire()
-    local f = table.remove(self.pool)
-    if f and f:IsShown() then f:Hide() end
-    if not f then
-        f = CreateFrame("Frame")
+function NS.Nameplates_Init() end
+
+local function GetPlate(unit)
+  return C_NamePlate.GetNamePlateForUnit(unit)
+end
+
+-- local store for assignments
+function NS.Assignments_Add(guid, spellID, player, ts)
+  assignments[guid] = assignments[guid] or {}
+  table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts })
+  NS.Nameplates_Refresh(guid)
+end
+
+function NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
+  NS.Assignments_Add(guid, tonumber(spellID), player, tonumber(ts))
+end
+
+function NS.Nameplates_OnAdded(unit)
+  local guid = UnitGUID(unit)
+  if not guid then return end
+  local plate = GetPlate(unit)
+  if not plate then return end
+
+  local f = CreateFrame("Frame", nil, plate)
+  f:SetPoint("LEFT", plate.UnitFrame or plate, "RIGHT", 6, 0)
+  f:SetSize(1,1)
+  f.icons = {}
+  pool[guid] = f
+
+  NS.Nameplates_Refresh(guid)
+end
+
+function NS.Nameplates_OnRemoved(unit)
+  local guid = UnitGUID(unit)
+  local f = pool[guid]
+  if not f then return end
+  for _, btn in ipairs(f.icons) do
+    btn:Hide()
+    btn:SetParent(nil)
+  end
+  pool[guid] = nil
+end
+
+function NS.Nameplates_OnInterruptCast(guid, player, spellID)
+  -- when someone actually casts, we could bump their icon highlight; optional
+  NS.Nameplates_Refresh(guid)
+end
+
+function NS.Nameplates_OnCooldownUpdate(player, spellID, readyAt)
+  -- called by Cooldowns when CD changes; refresh all strips containing this player/spell
+  for guid, list in pairs(assignments) do
+    for _, a in ipairs(list) do
+      if a.player == player and a.spellID == spellID then
+        NS.Nameplates_Refresh(guid)
+      end
     end
-    return f
+  end
 end
 
-function Nameplates:Release(f)
-    if f then f:Hide() table.insert(self.pool, f) end
+local function AcquireIcon(parent, index)
+  local btn = parent.icons[index]
+  if not btn then
+    btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(NS.DB.iconSize, NS.DB.iconSize)
+    btn.icon = btn:CreateTexture(nil, "ARTWORK")
+    btn.icon:SetAllPoints(true)
+    btn.cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
+    btn.cd:SetAllPoints(true)
+    parent.icons[index] = btn
+  end
+  btn:ClearAllPoints()
+  if index == 1 then
+    btn:SetPoint("LEFT", parent, "LEFT", 0, 0)
+  else
+    btn:SetPoint("LEFT", parent.icons[index-1], "RIGHT", NS.DB.iconSpacing, 0)
+  end
+  btn:Show()
+  return btn
 end
 
-function Nameplates:GetNameplateForUnit(unit)
-    if C_NamePlate and C_NamePlate.GetNamePlateForUnit then
-        return C_NamePlate.GetNamePlateForUnit(unit)
+local function SpellIcon(spellID)
+  local icon = select(3, GetSpellInfo(spellID))
+  return icon
+end
+
+function NS.Nameplates_Refresh(guid)
+  local f = pool[guid]
+  if not f then return end
+  local list = assignments[guid] or {}
+  table.sort(list, function(a,b) return a.ts < b.ts end)
+
+  local idx = 1
+  for _, a in ipairs(list) do
+    local btn = AcquireIcon(f, idx)
+    btn.icon:SetTexture(SpellIcon(a.spellID))
+
+    local remain = NS.Cooldowns_Get(a.player, a.spellID)
+    if remain > 0 then
+      btn.cd:SetCooldown(GetTime() + remain - remain, remain) -- start now, set duration
+    else
+      btn.cd:Clear()
     end
-    return nil
-end
 
-CanIKickIt.Nameplates = Nameplates
-return Nameplates
+    idx = idx + 1
+  end
+
+  -- hide unused icons
+  for i = idx, #f.icons do
+    f.icons[i]:Hide()
+  end
+end

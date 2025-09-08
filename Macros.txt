@@ -1,3 +1,2 @@
 # Macro examples for CanIKickIt
-# /run CanIKickIt.RegisterInterruptIntent("Kick","target")
-# /run CanIKickIt.RegisterInterruptIntent("Pummel","focus")
+/run CanIKickIt.AssignIntent()

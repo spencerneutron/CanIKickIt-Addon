@@ -1,42 +1,29 @@
-local addonName, CanIKickIt = ...
-CanIKickIt = CanIKickIt or {}
+local ADDON, NS = ...
+_G.CanIKickIt = NS
 
--- Basic initialization and module wiring
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("ADDON_LOADED")
+NS.ADDON_NAME = ADDON
+NS.PREFIX = "CIKI"            -- addon comm prefix
+NS.VERSION = "0.1.0"
 
-frame:SetScript("OnEvent", function(self, event, name)
-    if event == "ADDON_LOADED" and name == addonName then
-        _G.CanIKickItDB = _G.CanIKickItDB or { profile = { } }
+-- SavedVariables defaults
+CanIKickItDB = CanIKickItDB or {}
+NS.DB = CanIKickItDB
 
-        -- try to embed AceComm if available
-        if LibStub and LibStub:GetLibrary and LibStub:GetLibrary("AceComm-3.0", true) then
-            local AceComm = LibStub:GetLibrary("AceComm-3.0")
-            if AceComm and AceComm.Embed then
-                AceComm:Embed(CanIKickIt)
-            end
-        end
-
-        if CanIKickIt.Init then
-            CanIKickIt.Init()
-        end
-
-        self:UnregisterEvent("ADDON_LOADED")
-    end
-end)
-
--- Public API: register interrupt intent for macros
-function CanIKickIt.RegisterInterruptIntent(spellName, targetName)
-    CanIKickIt.interruptIntent = CanIKickIt.interruptIntent or {}
-    CanIKickIt.interruptIntent[spellName] = targetName
-    -- broadcast to party/raid as a compact message (prefix 'CIK')
-    if CanIKickIt.SendCommMessage then
-        local payload = spellName.."|"..(targetName or "")
-        CanIKickIt:SendCommMessage("CanIKickIt", payload, IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or (IsInRaid() and "RAID" or "PARTY"))
-    end
+-- simple logger
+function NS:Log(...)
+  if NS.DB.debug then
+    print("|cff66cfffCIKI|r:", ...)
+  end
 end
 
--- Expose a simple helper for macros
-_G.CanIKickIt = CanIKickIt
-
-return CanIKickIt
+-- lifecycle
+local f = CreateFrame("Frame")
+f:RegisterEvent("PLAYER_LOGIN")
+f:SetScript("OnEvent", function()
+  NS.InitConfig()            -- Config.lua
+  NS.Comm_Init()             -- Comm.lua
+  NS.Events_Init()           -- Events.lua
+  NS.Nameplates_Init()       -- Nameplates.lua
+  NS.Cooldowns_Init()        -- Cooldowns.lua
+  NS:Log("Loaded v" .. NS.VERSION)
+end)

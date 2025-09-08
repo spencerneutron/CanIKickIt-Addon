@@ -1,25 +1,32 @@
-local addonName, CanIKickIt = ...
-local Util = {}
+local NS = select(2, ...)
 
-function Util.CompactEncode(tbl)
-    -- very small delimited encoder: k1=v1;k2=v2
-    local out = {}
-    for k,v in pairs(tbl) do
-        table.insert(out, tostring(k) .. "=" .. tostring(v))
-    end
-    return table.concat(out, ";")
+-- Encode a table of fields as pipe-delimited string; escape pipes/backslashes.
+function NS.Encode(fields)
+  local out = {}
+  for i = 1, #fields do
+    local s = tostring(fields[i] or "")
+    s = s:gsub("\\", "\\\\"):gsub("|", "\\p")
+    out[i] = s
+  end
+  return table.concat(out, "|")
 end
 
-function Util.CompactDecode(str)
-    local t = {}
-    if not str or str == "" then return t end
-    for pair in string.gmatch(str, "[^"];+") do end -- noop to avoid pattern pitfalls
-    for s in string.gmatch(str, "[^;]+") do
-        local k, v = string.match(s, "([^=]+)=(.*)")
-        if k then t[k] = v end
-    end
-    return t
+-- Decode to array; unescape.
+function NS.Decode(s)
+  local out = {}
+  for part in string.gmatch(s, "([^|]*)|?") do
+    if part == "" and #out > 0 and s:sub(-1) ~= "|" then break end
+    part = part:gsub("\\p", "|"):gsub("\\\\", "\\")
+    table.insert(out, part)
+  end
+  return out
 end
 
-CanIKickIt.Util = Util
-return Util
+function NS.Now()
+  return GetTime()
+end
+
+-- stable sort by first then second field
+function NS.StableSort(t, cmp)
+  table.sort(t, cmp)
+end

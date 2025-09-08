@@ -1,7 +1,21 @@
-## Interface: 100105
-## Title: Can I Kick It
-## Notes: Base addon scaffold
-## Author: CanIKickIt Team
-## Version: @project-version@
+## Interface: 110200
+## Title: CanIKickIt
+## Notes: Group interrupt organizer
+## Author: Boolbog
+## Version: 0.1.0
+## SavedVariables: CanIKickItDB
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0
 
-Interface\AddOns\CanIKickIt\CanIKickIt.toc
+Lib/LibStub.lua
+Lib/CallbackHandler-1.0.lua
+Lib/AceComm-3.0.lua
+
+Core.lua
+Config.lua
+Util.lua
+Interrupts.lua
+Comm.lua
+Events.lua
+Targeting.lua
+Cooldowns.lua
+Nameplates.lua

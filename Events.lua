@@ -1,24 +1,32 @@
-local addonName, CanIKickIt = ...
-local Events = {}
+local NS = select(2, ...)
 
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-frame:RegisterEvent("CHAT_MSG_ADDON")
-frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
-frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+local f = CreateFrame("Frame")
 
-frame:SetScript("OnEvent", function(self, event, ...)
-    if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        local timestamp, subevent, hideCaster, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellId, spellName = CombatLogGetCurrentEventInfo()
-        if CanIKickIt.OnCombatEvent then CanIKickIt.OnCombatEvent(subevent, srcGUID, srcName, dstGUID, dstName, spellId, spellName) end
-    elseif event == "CHAT_MSG_ADDON" then
-        local prefix, message, distribution, sender = ...
-        if CanIKickIt.OnComm then CanIKickIt.OnComm(prefix, message, distribution, sender) end
-    elseif event == "NAME_PLATE_UNIT_ADDED" or event == "NAME_PLATE_UNIT_REMOVED" then
-        local unit = ...
-        if CanIKickIt.OnNameplateEvent then CanIKickIt.OnNameplateEvent(event, unit) end
+function NS.Events_Init()
+  f:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+  f:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+  f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+  f:SetScript("OnEvent", function(_, evt, ...)
+    if evt == "NAME_PLATE_UNIT_ADDED" then
+      NS.Nameplates_OnAdded(...)
+    elseif evt == "NAME_PLATE_UNIT_REMOVED" then
+      NS.Nameplates_OnRemoved(...)
+    elseif evt == "COMBAT_LOG_EVENT_UNFILTERED" then
+      NS.OnCombatLog(CombatLogGetCurrentEventInfo())
     end
-end)
+  end)
+end
 
-CanIKickIt.Events = Events
-return Events
+-- Combat log: infer interrupts & start cooldowns
+function NS.OnCombatLog(...)
+  local _, sub, _, srcGUID, srcName, _, _, dstGUID, _, _, _, spellID = ...
+  if sub == "SPELL_CAST_SUCCESS" then
+    if NS.IsInterruptSpell(spellID) then
+      local cd = NS.GetBaseCD(spellID, srcGUID)       -- Cooldowns.lua can adjust per class/spec if needed
+      NS.Cooldowns_Start(srcName, spellID, cd)
+      NS.Comm_SendCD(spellID, srcName or "unknown", NS.Now(), cd)
+      -- If dstGUID is hostile mob, update strip ordering
+      if dstGUID then NS.Nameplates_OnInterruptCast(dstGUID, srcName, spellID) end
+    end
+  end
+end
