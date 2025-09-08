@@ -2,9 +2,24 @@ local NS = select(2, ...)
 
 local pool = {}              -- guid -> frame
 local assignments = {}       -- guid -> { {player, spellID, ts}, ... }
+local pendingSpellIcons = {} -- spellID -> { guidSet = { [guid]=true } }
+local QUESTION_MARK_FILEID = 134400  -- INV_Misc_QuestionMark
 
-function NS.Nameplates_Init() 
-    -- nothing to do here; frames are created on demand
+function NS.Nameplates_Init()
+    if not NS._spellIconEvt then
+        local iconEvt = CreateFrame("Frame")
+        iconEvt:RegisterEvent("SPELL_DATA_LOAD_RESULT")
+        iconEvt:SetScript("OnEvent", function(_, _, spellID, success)
+            if not success then return end
+            local bucket = pendingSpellIcons[spellID]
+            if not bucket then return end
+            for guid in pairs(bucket.guidSet) do
+            NS.Nameplates_Refresh(guid)
+            end
+            pendingSpellIcons[spellID] = nil
+        end)
+        NS._spellIconEvt = iconEvt
+    end
 end
 
 local function GetPlate(unit)
@@ -94,28 +109,40 @@ local function AcquireIcon(parent, index)
   return btn
 end
 
-local function SpellIcon(spellID)
-  -- safe retrieval of a spell icon: prefer global GetSpellInfo, then C_Spell.GetSpellInfo, then GetSpellTexture
-  if type(GetSpellInfo) == "function" then
-    local _, _, icon = GetSpellInfo(spellID)
-    NS:Log("SpellIcon via GetSpellInfo", spellID, tostring(icon))
-    return icon
-  end
-
+local function SpellIcon(spellID, guid)
+  -- 1) C_Spell.GetSpellInfo returns a table (info.name, info.iconID, ...)
   if type(C_Spell) == "table" and type(C_Spell.GetSpellInfo) == "function" then
-    local _, _, icon = C_Spell.GetSpellInfo(spellID)
-    NS:Log("SpellIcon via C_Spell.GetSpellInfo", spellID, tostring(icon))
-    return icon
+    local info = C_Spell.GetSpellInfo(spellID)
+    if info and info.iconID then
+      NS:Log("SpellIcon via C_Spell.GetSpellInfo", spellID, info.iconID)
+      return info.iconID
+    end
   end
 
+  -- 2) Fallback: GetSpellTexture still exists on mainline
   if type(GetSpellTexture) == "function" then
     local icon = GetSpellTexture(spellID)
-    NS:Log("SpellIcon via GetSpellTexture", spellID, tostring(icon))
-    return icon
+    if icon then
+      NS:Log("SpellIcon via GetSpellTexture", spellID, tostring(icon))
+      return icon
+    end
   end
 
-  NS:Log("SpellIcon not found for", spellID)
-  return nil
+  -- 3) Request async load; we'll refresh when it completes
+  if type(C_Spell) == "table" and type(C_Spell.RequestLoadSpellData) == "function" then
+    NS:Log("SpellIcon requesting load for", spellID, "for guid", guid)
+    C_Spell.RequestLoadSpellData(spellID)
+    local bucket = pendingSpellIcons[spellID]
+    if not bucket then
+      bucket = { guidSet = {} }
+      pendingSpellIcons[spellID] = bucket
+    end
+    if guid then bucket.guidSet[guid] = true end
+  end
+
+  -- 4) Return a placeholder so something renders now
+  NS:Log("SpellIcon returning placeholder for", spellID)
+  return QUESTION_MARK_FILEID
 end
 
 function NS.Nameplates_Refresh(guid)
@@ -131,7 +158,7 @@ function NS.Nameplates_Refresh(guid)
   for _, a in ipairs(list) do
     NS:Log("Nameplates_Refresh item", idx, a.player, a.spellID, a.ts)
     local btn = AcquireIcon(f, idx)
-    local iconTex = SpellIcon(a.spellID)
+    local iconTex = SpellIcon(a.spellID, guid)
     if iconTex then
       btn.icon:SetTexture(iconTex)
     else
@@ -141,7 +168,7 @@ function NS.Nameplates_Refresh(guid)
 
     local remain = NS.Cooldowns_Get(a.player, a.spellID)
     if remain > 0 then
-      btn.cd:SetCooldown(GetTime() + remain - remain, remain) -- start now, set duration
+      btn.cd:SetCooldown(GetTime(), remain)
     else
       btn.cd:Clear()
     end
