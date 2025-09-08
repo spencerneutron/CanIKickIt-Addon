@@ -20,10 +20,10 @@ end
 
 -- Combat log: infer interrupts & start cooldowns
 function NS.OnCombatLog(...)
-  local _, sub, _, srcGUID, srcName, _, _, dstGUID, _, _, _, spellID = ...
-  if sub == "SPELL_CAST_SUCCESS" then
+  local _, sub, _, _, srcName, _, _, dstGUID, _, _, _, spellID = ...
+  if sub == "SPELL_CAST_SUCCESS" and dstGUID and spellID then
     if NS.IsInterruptSpell(spellID) then
-      local cd = NS.GetBaseCD(spellID, srcGUID)       -- Cooldowns.lua can adjust per class/spec if needed
+      local cd = NS.GetBaseCD(spellID)       -- Cooldowns.lua can adjust per class/spec if needed
       NS.Cooldowns_Start(srcName, spellID, cd)
       NS.Comm_SendCD(spellID, srcName or "unknown", NS.Now(), cd)
       -- If dstGUID is hostile mob, update strip ordering

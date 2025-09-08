@@ -54,15 +54,23 @@ function NS.Nameplates_OnAdded(unit)
   local guid = UnitGUID(unit)
   NS:Log("Nameplates_OnAdded", unit, guid)
   if not guid then return end
+
   local plate = GetPlate(unit)
   if not plate then
     NS:Log("Nameplates_OnAdded no plate for unit", unit)
-    return end
+    return
+  end
 
-  local f = CreateFrame("Frame", nil, plate)
-  f:SetPoint("LEFT", plate.UnitFrame or plate, "RIGHT", 6, 0)
+  local parent = plate.UnitFrame or plate
+  local f = CreateFrame("Frame", nil, parent)
+  f:SetPoint("LEFT", parent, "RIGHT", 6, 0)
   f:SetSize(1,1)
   f.icons = {}
+
+  -- layer above plate elements
+  f:SetFrameStrata("MEDIUM")
+  f:SetFrameLevel(parent:GetFrameLevel() + 10)
+
   pool[guid] = f
 
   NS.Nameplates_Refresh(guid)
@@ -116,12 +124,22 @@ local function AcquireIcon(parent, index)
     NS:Log("AcquireIcon creating", index)
     btn = CreateFrame("Button", nil, parent)
     btn:SetSize(NS.DB.iconSize, NS.DB.iconSize)
+    btn:EnableMouse(false)
+
+    -- place above parent; do this once
+    btn:SetFrameStrata("MEDIUM")
+    btn:SetFrameLevel(parent:GetFrameLevel() + 1)
+
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
     btn.icon:SetAllPoints(true)
+    btn.icon:SetDrawLayer("ARTWORK", 1)
+
     btn.cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
     btn.cd:SetAllPoints(true)
+
     parent.icons[index] = btn
   end
+
   btn:ClearAllPoints()
   if index == 1 then
     btn:SetPoint("LEFT", parent, "LEFT", 0, 0)
@@ -131,6 +149,7 @@ local function AcquireIcon(parent, index)
   btn:Show()
   return btn
 end
+
 
 local function SpellIcon(spellID, guid)
   -- 1) C_Spell.GetSpellInfo returns a table (info.name, info.iconID, ...)
@@ -179,31 +198,24 @@ function NS.Nameplates_Refresh(guid)
 
   local idx = 1
   for _, a in ipairs(list) do
-    NS:Log("Nameplates_Refresh item", idx, a.player, a.spellID, a.ts)
-    local btn = AcquireIcon(f, idx)
-    local iconTex = SpellIcon(a.spellID, guid)
-    if iconTex then
-      btn.icon:SetTexture(iconTex)
-    else
-      NS:Log("No icon texture for spell", a.spellID, "player", a.player)
-      btn.icon:SetTexture(nil)
-    end
-
-    btn:EnableMouse(false)
-    btn:SetFrameStrata("MEDIUM")
-    btn:SetFrameLevel(parent:GetFrameLevel() + 1)
-    btn.icon:SetDrawLayer("ARTWORK", 1)
-
-    -- inside the loop, after you set btn.icon:
-    local s, d = NS.Cooldowns_GetInfo(a.player, a.spellID)
-    if s and d and d > 0 then
-    btn.cd:SetCooldown(s, d)   -- CooldownFrame animates itself
-    else
-    btn.cd:Clear()
-    end
-
-    idx = idx + 1
+  NS:Log("Nameplates_Refresh item", idx, a.player, a.spellID, a.ts)
+  local btn = AcquireIcon(f, idx)
+  local iconTex = SpellIcon(a.spellID, guid)
+  if iconTex then
+    btn.icon:SetTexture(iconTex)
+  else
+    NS:Log("No icon texture for spell", a.spellID, "player", a.player)
+    btn.icon:SetTexture(nil)
   end
+
+  local s, d = NS.Cooldowns_GetInfo(a.player, a.spellID)
+  if s and d and d > 0 then
+    btn.cd:SetCooldown(s, d)        -- set once; it animates itself
+  else
+    btn.cd:Clear()
+  end
+  idx = idx + 1
+end
 
   -- hide unused icons
   for i = idx, #f.icons do
