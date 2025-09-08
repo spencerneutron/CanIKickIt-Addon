@@ -24,7 +24,3 @@ function NS.AssignIntent()
   NS.Comm_SendAssign(guid, intr.spellID, player, ts)
   NS:Log(("Assigned %s (%d) to %s"):format(intr.name, intr.spellID, guid or "?"))
 end
-
-
--- Example Macro usage:
--- /run CanIKickIt.AssignIntent()
