@@ -40,13 +40,18 @@ end
 
 function NS:Comm_OnMessage(prefix, msg, dist, sender)
   if prefix ~= NS.PREFIX then return end
+  local me = UnitName("player")
   local parts = NS.Decode(msg)
   local t = parts[1]
+
   if t == "assign" then
     local guid, spellID, player, ts = parts[2], tonumber(parts[3]), parts[4], tonumber(parts[5])
     NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
+
   elseif t == "cd" then
     local spellID, player, startedAt, duration = tonumber(parts[2]), parts[3], tonumber(parts[4]), tonumber(parts[5])
-    NS.Cooldowns_OnRemoteCD(spellID, player, startedAt, duration)
+    if player ~= me then
+      NS.Cooldowns_OnRemoteCD(spellID, player, startedAt, duration)
+    end
   end
 end

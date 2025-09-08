@@ -5,6 +5,10 @@ local assignments = {}       -- guid -> { {player, spellID, ts}, ... }
 local pendingSpellIcons = {} -- spellID -> { guidSet = { [guid]=true } }
 local QUESTION_MARK_FILEID = 134400  -- INV_Misc_QuestionMark
 
+local dirty = {}             -- guid -> true
+local flushScheduled = false
+
+
 function NS.Nameplates_Init()
     if not NS._spellIconEvt then
         local iconEvt = CreateFrame("Frame")
@@ -30,8 +34,15 @@ end
 function NS.Assignments_Add(guid, spellID, player, ts)
   NS:Log("Assignments_Add", guid, spellID, player, ts)
   assignments[guid] = assignments[guid] or {}
-  table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts })
-  NS.Nameplates_Refresh(guid)
+    table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts })
+    dirty[guid] = true
+    if not flushScheduled then
+    flushScheduled = true
+    C_Timer.After(0, function()
+        flushScheduled = false
+        for g in pairs(dirty) do dirty[g] = nil; NS.Nameplates_Refresh(g) end
+    end)
+    end
 end
 
 function NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
@@ -75,15 +86,27 @@ function NS.Nameplates_OnInterruptCast(guid, player, spellID)
   NS.Nameplates_Refresh(guid)
 end
 
-function NS.Nameplates_OnCooldownUpdate(player, spellID, readyAt)
-  NS:Log("Nameplates_OnCooldownUpdate", player, spellID, readyAt)
-  -- called by Cooldowns when CD changes; refresh all strips containing this player/spell
+function NS.Nameplates_NotifyCooldownChanged(player, spellID)
+  -- Mark all GUIDs containing (player,spellID) as dirty; quick scan is fine
   for guid, list in pairs(assignments) do
-    for _, a in ipairs(list) do
+    for i = 1, #list do
+      local a = list[i]
       if a.player == player and a.spellID == spellID then
-        NS.Nameplates_Refresh(guid)
+        dirty[guid] = true
+        break
       end
     end
+  end
+  -- Batch once per frame
+  if not flushScheduled then
+    flushScheduled = true
+    C_Timer.After(0, function()
+      flushScheduled = false
+      for guid in pairs(dirty) do
+        dirty[guid] = nil
+        NS.Nameplates_Refresh(guid)
+      end
+    end)
   end
 end
 
@@ -166,11 +189,17 @@ function NS.Nameplates_Refresh(guid)
       btn.icon:SetTexture(nil)
     end
 
-    local remain = NS.Cooldowns_Get(a.player, a.spellID)
-    if remain > 0 then
-      btn.cd:SetCooldown(GetTime(), remain)
+    btn:EnableMouse(false)
+    btn:SetFrameStrata("MEDIUM")
+    btn:SetFrameLevel(parent:GetFrameLevel() + 1)
+    btn.icon:SetDrawLayer("ARTWORK", 1)
+
+    -- inside the loop, after you set btn.icon:
+    local s, d = NS.Cooldowns_GetInfo(a.player, a.spellID)
+    if s and d and d > 0 then
+    btn.cd:SetCooldown(s, d)   -- CooldownFrame animates itself
     else
-      btn.cd:Clear()
+    btn.cd:Clear()
     end
 
     idx = idx + 1
