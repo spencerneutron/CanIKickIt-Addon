@@ -39,3 +39,13 @@ luac.out
 *.x86_64
 *.hex
 
+
+# Editor files
+*.swp
+*~
+.vscode/
+.idea/
+
+# Build artifacts
+pkg/
+

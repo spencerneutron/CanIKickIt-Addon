@@ -1,0 +1,7 @@
+## Interface: 100105
+## Title: Can I Kick It
+## Notes: Base addon scaffold
+## Author: CanIKickIt Team
+## Version: @project-version@
+
+Interface\AddOns\CanIKickIt\CanIKickIt.toc
