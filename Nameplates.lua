@@ -13,20 +13,25 @@ end
 
 -- local store for assignments
 function NS.Assignments_Add(guid, spellID, player, ts)
+  NS:Log("Assignments_Add", guid, spellID, player, ts)
   assignments[guid] = assignments[guid] or {}
   table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts })
   NS.Nameplates_Refresh(guid)
 end
 
 function NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
+  NS:Log("Assignments_OnRemoteAssign", guid, spellID, player, ts)
   NS.Assignments_Add(guid, tonumber(spellID), player, tonumber(ts))
 end
 
 function NS.Nameplates_OnAdded(unit)
   local guid = UnitGUID(unit)
+  NS:Log("Nameplates_OnAdded", unit, guid)
   if not guid then return end
   local plate = GetPlate(unit)
-  if not plate then return end
+  if not plate then
+    NS:Log("Nameplates_OnAdded no plate for unit", unit)
+    return end
 
   local f = CreateFrame("Frame", nil, plate)
   f:SetPoint("LEFT", plate.UnitFrame or plate, "RIGHT", 6, 0)
@@ -39,6 +44,7 @@ end
 
 function NS.Nameplates_OnRemoved(unit)
   local guid = UnitGUID(unit)
+  NS:Log("Nameplates_OnRemoved", unit, guid)
   local f = pool[guid]
   if not f then return end
   for _, btn in ipairs(f.icons) do
@@ -49,11 +55,13 @@ function NS.Nameplates_OnRemoved(unit)
 end
 
 function NS.Nameplates_OnInterruptCast(guid, player, spellID)
+  NS:Log("Nameplates_OnInterruptCast", guid, player, spellID)
   -- when someone actually casts, we could bump their icon highlight; optional
   NS.Nameplates_Refresh(guid)
 end
 
 function NS.Nameplates_OnCooldownUpdate(player, spellID, readyAt)
+  NS:Log("Nameplates_OnCooldownUpdate", player, spellID, readyAt)
   -- called by Cooldowns when CD changes; refresh all strips containing this player/spell
   for guid, list in pairs(assignments) do
     for _, a in ipairs(list) do
@@ -67,6 +75,7 @@ end
 local function AcquireIcon(parent, index)
   local btn = parent.icons[index]
   if not btn then
+    NS:Log("AcquireIcon creating", index)
     btn = CreateFrame("Button", nil, parent)
     btn:SetSize(NS.DB.iconSize, NS.DB.iconSize)
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
@@ -89,31 +98,46 @@ local function SpellIcon(spellID)
   -- safe retrieval of a spell icon: prefer global GetSpellInfo, then C_Spell.GetSpellInfo, then GetSpellTexture
   if type(GetSpellInfo) == "function" then
     local _, _, icon = GetSpellInfo(spellID)
+    NS:Log("SpellIcon via GetSpellInfo", spellID, tostring(icon))
     return icon
   end
 
   if type(C_Spell) == "table" and type(C_Spell.GetSpellInfo) == "function" then
     local _, _, icon = C_Spell.GetSpellInfo(spellID)
+    NS:Log("SpellIcon via C_Spell.GetSpellInfo", spellID, tostring(icon))
     return icon
   end
 
   if type(GetSpellTexture) == "function" then
-    return GetSpellTexture(spellID)
+    local icon = GetSpellTexture(spellID)
+    NS:Log("SpellIcon via GetSpellTexture", spellID, tostring(icon))
+    return icon
   end
 
+  NS:Log("SpellIcon not found for", spellID)
   return nil
 end
 
 function NS.Nameplates_Refresh(guid)
+  NS:Log("Nameplates_Refresh", guid)
   local f = pool[guid]
-  if not f then return end
+  if not f then
+    NS:Log("Nameplates_Refresh no frame for", guid)
+    return end
   local list = assignments[guid] or {}
   table.sort(list, function(a,b) return a.ts < b.ts end)
 
   local idx = 1
   for _, a in ipairs(list) do
+    NS:Log("Nameplates_Refresh item", idx, a.player, a.spellID, a.ts)
     local btn = AcquireIcon(f, idx)
-    btn.icon:SetTexture(SpellIcon(a.spellID))
+    local iconTex = SpellIcon(a.spellID)
+    if iconTex then
+      btn.icon:SetTexture(iconTex)
+    else
+      NS:Log("No icon texture for spell", a.spellID, "player", a.player)
+      btn.icon:SetTexture(nil)
+    end
 
     local remain = NS.Cooldowns_Get(a.player, a.spellID)
     if remain > 0 then
@@ -132,6 +156,7 @@ function NS.Nameplates_Refresh(guid)
 end
 
 function NS.Nameplates_RefreshAll()
+  NS:Log("Nameplates_RefreshAll")
   -- iterate visible nameplates and call existing refresh logic
   for _, plate in pairs(C_NamePlate.GetNamePlates() or {}) do
     local unit = plate.namePlateUnitToken
