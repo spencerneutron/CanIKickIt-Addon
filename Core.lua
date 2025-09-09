@@ -88,3 +88,68 @@ end
 
 E:SetScript("OnEvent", OnEvent)
 E:RegisterEvent("ADDON_LOADED")
+
+-- ------- helpers that DO NOT touch the world at file load time -------------
+
+function NS.RecomputePlayerInterrupts()
+  -- forces a new preferred interrupt + caches (cheap)
+  if NS.GetPreferredInterruptForPlayer then
+    NS._preferredInterrupt = NS.GetPreferredInterruptForPlayer()
+    NS:Log("Preferred interrupt:", NS._preferredInterrupt and NS._preferredInterrupt.name or "none")
+  end
+end
+
+function NS.RefreshAllVisiblePlates()
+  -- Safe call into your nameplate module to redraw current plates
+  if NS.Nameplates_RefreshAll then
+    NS.Nameplates_RefreshAll()
+  end
+end
+
+function NS.ClearTransientState()
+  -- e.g., wipe assignment lists if they should not persist across zones
+  if NS.Assignments_Clear then
+    NS.Assignments_Clear()
+  end
+end
+
+function NS.AssignIntentCore(spellID)
+  -- prefer explicit spellID, then preferred interrupt, then bail
+  local sid = spellID or (NS._preferredInterrupt and NS._preferredInterrupt.spellID)
+  sid = NS.ResolveSpellID(sid) or sid
+  sid = tonumber(sid)
+  if not sid then
+    NS:Log("AssignIntent: no valid spellID provided")
+    return
+  end
+
+  -- prefer hostile focus, then hostile target
+  local unit = nil
+  if UnitExists("focus") and UnitCanAttack("player", "focus") then
+    unit = "focus"
+  elseif UnitExists("target") and UnitCanAttack("player", "target") then
+    unit = "target"
+  end
+  if not unit then
+    NS:Log("AssignIntent: no hostile focus or target")
+    return
+  end
+
+  local guid = UnitGUID(unit)
+  if not guid then
+    NS:Log("AssignIntent: no GUID for unit", unit)
+    return
+  end
+
+  local player = UnitName("player")
+  local ts = NS.Now()
+
+  -- apply locally as macro (macro-locked) and broadcast
+  if NS.Assignments_Add then
+    NS.Assignments_Add(guid, sid, player, ts, "macro")
+  end
+  if NS.Comm_SendAssign then
+    NS.Comm_SendAssign(guid, sid, player, ts, "macro")
+  end
+  NS:Log("AssignIntent: assigned", guid, sid, player, "unit="..tostring(unit))
+end
