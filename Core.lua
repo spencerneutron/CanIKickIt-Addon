@@ -21,6 +21,9 @@ local function applyDefaults(db)
   if db.iconSpacing == nil then db.iconSpacing = 2 end
   if db.iconSize == nil    then db.iconSize    = 18 end
   if db.debug == nil       then db.debug       = false end
+  -- options UI defaults
+  if db.showLabels == nil     then db.showLabels     = true end
+  if db.labelFontSize == nil  then db.labelFontSize  = 12 end
 end
 
 local function OnEvent(_, event, ...)
@@ -135,7 +138,7 @@ function NS.AssignIntentCore(spellID)
     NS:Log("AssignIntent: no GUID for unit", unit)
     return
   end
-  
+
   local player = UnitName("player") or "player"
   local ts = NS.Now()
 

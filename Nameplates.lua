@@ -278,6 +278,16 @@ local function AcquireIcon(parent, index)
     btn.label:SetPoint("BOTTOM", btn, "TOP", 0, 2)
     btn.label:SetJustifyH("CENTER")
     btn.label:SetTextColor(1, 1, 1, 1)
+    -- honor configured font size if available (defensive check)
+    do
+      local size = (NS.DB and NS.DB.labelFontSize) or 12
+      if type(GameFontNormalSmall) == "table" and GameFontNormalSmall.GetFont then
+        local fpath, _, fflags = GameFontNormalSmall:GetFont()
+        if fpath then btn.label:SetFont(fpath, size, fflags) end
+      else
+        if btn.label.SetFont then pcall(btn.label.SetFont, btn.label, nil, size) end
+      end
+    end
     btn.label:Hide()
 
     parent.icons[index] = btn

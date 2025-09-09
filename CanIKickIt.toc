@@ -18,3 +18,4 @@ Events.lua
 Targeting.lua
 Cooldowns.lua
 Nameplates.lua
+Options.lua
