@@ -69,7 +69,8 @@ end)
 
 -- Checkbox: Enable cooldown sync (broadcast local CD changes)
 local cbSync = CreateFrame("CheckButton", "CanIKickIt_SyncCB", panel, "InterfaceOptionsCheckButtonTemplate")
-cbSync:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", -2, -12)
+-- push the right-column checkbox stack further down so it doesn't collide with the sliders
+cbSync:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", -2, -60)
 cbSync.Text:SetText("Enable cooldown sync")
 cbSync.tooltip = "Broadcast cooldown changes to other addon users when enabled."
 cbSync:SetScript("OnClick", function(self)
@@ -99,7 +100,7 @@ end)
 -- Slider: Icon spacing
 local spacingSlider = CreateFrame("Slider", "CanIKickIt_IconSpacingSlider", panel, "OptionsSliderTemplate")
 spacingSlider:SetWidth(200)
-spacingSlider:SetPoint("TOPLEFT", fontSlider, "TOPLEFT", 0, 0)
+spacingSlider:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", 0, -28)
 spacingSlider:SetMinMaxValues(0, 16)
 spacingSlider:SetValueStep(1)
 spacingSlider.Text = _G[spacingSlider:GetName() .. "Text"]
@@ -115,8 +116,8 @@ end)
 
 -- Reset to defaults button
 local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
--- move Reset button to left column under the checkbox stack
-btn:SetPoint("TOPLEFT", cbAnchorLeft, "BOTTOMLEFT", 0, -18)
+-- move Reset button to left column under the checkbox stack and nudge down for spacing
+btn:SetPoint("TOPLEFT", cbAnchorLeft, "BOTTOMLEFT", 0, -36)
 btn:SetSize(120, 24)
 btn:SetText("Reset to defaults")
 btn:SetScript("OnClick", function()
