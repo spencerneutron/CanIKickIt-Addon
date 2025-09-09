@@ -184,10 +184,11 @@ function NS.Nameplates_OnAdded(unit)
   -- IMPORTANT: parent to the plate ROOT (not UnitFrame) to avoid 3rd-party clipping/fading
   local parentAnchor = plate.UnitFrame or plate
   local f = CreateFrame("Frame", nil, plate)  -- parent = plate (root)
+  local offset = (NS.DB and NS.DB.iconOffset) or 6
   if (NS.DB and NS.DB.iconAnchor) == "left" then
-    f:SetPoint("RIGHT", parentAnchor, "LEFT", -6, 0)
+    f:SetPoint("RIGHT", parentAnchor, "LEFT", -offset, 0)
   else
-    f:SetPoint("LEFT", parentAnchor, "RIGHT", 6, 0)
+    f:SetPoint("LEFT", parentAnchor, "RIGHT", offset, 0)
   end
   f:SetSize(1, 1)
   f.icons = {}

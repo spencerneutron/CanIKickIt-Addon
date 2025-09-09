@@ -67,6 +67,23 @@ fontSlider:SetScript("OnValueChanged", function(self, v)
     if NS.Nameplates_RefreshAll then NS.Nameplates_RefreshAll() end
 end)
 
+-- Slider: Icon offset from nameplate (pixels)
+local offsetSlider = CreateFrame("Slider", "CanIKickIt_IconOffsetSlider", panel, "OptionsSliderTemplate")
+offsetSlider:SetWidth(200)
+offsetSlider:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", 0, -28)
+offsetSlider:SetMinMaxValues(0, 32)
+offsetSlider:SetValueStep(1)
+offsetSlider.Text = _G[offsetSlider:GetName() .. "Text"]
+offsetSlider.Low = _G[offsetSlider:GetName() .. "Low"]
+offsetSlider.High = _G[offsetSlider:GetName() .. "High"]
+offsetSlider.Text:SetText("Icon offset from nameplate")
+offsetSlider.Low:SetText("0")
+offsetSlider.High:SetText("32")
+offsetSlider:SetScript("OnValueChanged", function(self, v)
+    NS.DB.iconOffset = math.floor(v + 0.5)
+    if NS.Nameplates_RefreshAll then NS.Nameplates_RefreshAll() end
+end)
+
 -- Checkbox: Enable cooldown sync (broadcast local CD changes)
 local cbSync = CreateFrame("CheckButton", "CanIKickIt_SyncCB", panel, "InterfaceOptionsCheckButtonTemplate")
 -- push the right-column checkbox stack further down so it doesn't collide with the sliders
@@ -129,6 +146,7 @@ btn:SetScript("OnClick", function()
     NS.DB.labelFontSize = 12
     NS.DB.observerMode = true
     NS.DB.syncMode = true
+    NS.DB.iconOffset = 6
     -- refresh UI controls
     panel.refresh()
     if NS.Nameplates_RefreshAll then NS.Nameplates_RefreshAll() end
@@ -139,6 +157,7 @@ function panel.refresh()
     cbShowLabels:SetChecked( not not NS.DB.showLabels )
     slider:SetValue(NS.DB.iconSize or 18)
     fontSlider:SetValue(NS.DB.labelFontSize or 12)
+    offsetSlider:SetValue(NS.DB.iconOffset or 6)
     cbDebug:SetChecked(not not NS.DB.debug)
     cbSync:SetChecked(not not NS.DB.syncMode)
     cbObserver:SetChecked(not not NS.DB.observerMode)
@@ -156,6 +175,7 @@ function panel.default()
     NS.DB.labelFontSize = 12
     NS.DB.observerMode = true
     NS.DB.syncMode = true
+    NS.DB.iconOffset = 6
     panel.refresh()
 end
 

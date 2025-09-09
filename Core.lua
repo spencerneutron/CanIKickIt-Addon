@@ -26,6 +26,8 @@ local function applyDefaults(db)
   if db.labelFontSize == nil  then db.labelFontSize  = 12 end
   -- observer mode (infer assignments from party members' casts)
   if db.observerMode == nil   then db.observerMode   = true end
+  -- default pixel offset from the plate when anchoring icons (positive number)
+  if db.iconOffset == nil    then db.iconOffset    = 6 end
 end
 
 local function OnEvent(_, event, ...)
