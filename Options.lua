@@ -24,7 +24,7 @@ end)
 
 -- Checkbox: Enable debug logging
 local cbDebug = CreateFrame("CheckButton", "CanIKickIt_DebugCB", panel, "InterfaceOptionsCheckButtonTemplate")
-cbDebug:SetPoint("TOPLEFT", cbShowLabels, "BOTTOMLEFT", 0, -8)
+cbDebug:SetPoint("TOPLEFT", cbShowLabels, "BOTTOMLEFT", 0, -12)
 cbDebug.Text:SetText("Enable debug logging")
 cbDebug.tooltip = "Print debug messages to the default chat when enabled."
 cbDebug:SetScript("OnClick", function(self)
@@ -34,7 +34,9 @@ end)
 -- Slider: Icon size
 local slider = CreateFrame("Slider", "CanIKickIt_IconSizeSlider", panel, "OptionsSliderTemplate")
 slider:SetWidth(200)
-slider:SetPoint("TOPLEFT", cbShowLabels, "BOTTOMLEFT", 8, -24)
+-- place sliders in a right-hand column so checkboxes form a tidy left column
+local rightColX = 260
+slider:SetPoint("TOPLEFT", title, "TOPLEFT", rightColX, -40)
 slider:SetMinMaxValues(8, 48)
 slider:SetValueStep(1)
 slider.Text = _G[slider:GetName() .. "Text"]
@@ -76,7 +78,7 @@ end)
 
 -- Checkbox: Observer mode
 local cbObserver = CreateFrame("CheckButton", "CanIKickIt_ObserverCB", panel, "InterfaceOptionsCheckButtonTemplate")
-cbObserver:SetPoint("TOPLEFT", cbSync, "BOTTOMLEFT", 0, -8)
+cbObserver:SetPoint("TOPLEFT", cbSync, "BOTTOMLEFT", 0, -12)
 cbObserver.Text:SetText("Observer mode (party only)")
 cbObserver.tooltip = "Infer interrupts from non-addon party members and show as low-priority observed assignments."
 cbObserver:SetScript("OnClick", function(self)
@@ -86,7 +88,7 @@ end)
 
 -- Checkbox: Anchor icons to left (otherwise right)
 local cbAnchorLeft = CreateFrame("CheckButton", "CanIKickIt_AnchorLeftCB", panel, "InterfaceOptionsCheckButtonTemplate")
-cbAnchorLeft:SetPoint("TOPLEFT", cbObserver, "BOTTOMLEFT", 0, -8)
+cbAnchorLeft:SetPoint("TOPLEFT", cbObserver, "BOTTOMLEFT", 0, -12)
 cbAnchorLeft.Text:SetText("Anchor icons to left")
 cbAnchorLeft.tooltip = "When checked, icons grow to the right from the nameplate; otherwise they grow to the left."
 cbAnchorLeft:SetScript("OnClick", function(self)
@@ -97,7 +99,7 @@ end)
 -- Slider: Icon spacing
 local spacingSlider = CreateFrame("Slider", "CanIKickIt_IconSpacingSlider", panel, "OptionsSliderTemplate")
 spacingSlider:SetWidth(200)
-spacingSlider:SetPoint("TOPLEFT", cbAnchorLeft, "BOTTOMLEFT", 8, -24)
+spacingSlider:SetPoint("TOPLEFT", fontSlider, "TOPLEFT", 0, 0)
 spacingSlider:SetMinMaxValues(0, 16)
 spacingSlider:SetValueStep(1)
 spacingSlider.Text = _G[spacingSlider:GetName() .. "Text"]
@@ -113,7 +115,8 @@ end)
 
 -- Reset to defaults button
 local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-btn:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", 0, -18)
+-- move Reset button to left column under the checkbox stack
+btn:SetPoint("TOPLEFT", cbAnchorLeft, "BOTTOMLEFT", 0, -18)
 btn:SetSize(120, 24)
 btn:SetText("Reset to defaults")
 btn:SetScript("OnClick", function()
