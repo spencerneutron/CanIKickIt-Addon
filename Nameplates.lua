@@ -273,6 +273,13 @@ local function AcquireIcon(parent, index)
     btn.lock:SetTexture(lockTex)
     btn.lock:Hide()
 
+    -- observed indicator (uncertain inference)
+    btn.observed = btn:CreateTexture(nil, "OVERLAY")
+    btn.observed:SetSize(8, 8)
+    btn.observed:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+    btn.observed:SetTexture(QUESTION_MARK_FILEID)
+    btn.observed:Hide()
+
     -- small label above the icon for the first four letters of the player name
     btn.label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     btn.label:SetPoint("BOTTOM", btn, "TOP", 0, 2)
@@ -392,11 +399,19 @@ function NS.Nameplates_Refresh(guid)
       if btn.label then btn.label:Hide() end
     end
 
-    -- lock indicator for macro assignments
+    -- lock / observed indicators
     if a.source == "macro" then
       if btn.lock then btn.lock:Show() end
+      if btn.observed then btn.observed:Hide() end
+      btn.icon:SetAlpha(1)
+    elseif a.source == "observed" then
+      if btn.lock then btn.lock:Hide() end
+      if btn.observed then btn.observed:Show() end
+      btn.icon:SetAlpha(0.75)
     else
       if btn.lock then btn.lock:Hide() end
+      if btn.observed then btn.observed:Hide() end
+      btn.icon:SetAlpha(1)
     end
 
     -- cooldown (set once; CooldownFrame animates itself)
@@ -427,6 +442,20 @@ function NS.Nameplates_RefreshAll()
       if guid then NS.Nameplates_Refresh(guid) end
     end
   end
+end
+
+-- Accessor: return true if player currently has any assignment that is NOT 'observed'
+function NS.Assignments_HasNonObserved(player)
+  if not player then return false end
+  for guid, list in pairs(assignments) do
+    for i = 1, #list do
+      local a = list[i]
+      if a.player == player and a.source ~= "observed" then
+        return true
+      end
+    end
+  end
+  return false
 end
 
 -- -----------------------------------------------------------------------------

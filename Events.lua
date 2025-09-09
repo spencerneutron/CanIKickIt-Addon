@@ -8,7 +8,7 @@ local function BuildPetOwnerCache()
   wipe(petOwnerCache)
   -- player pet
   local pg = UnitGUID("pet")
-  if pg then petOwnerCache[pg] = UnitName("player") end
+  if pg then petOwnerCache[pg] = { name = UnitName("player"), guid = UnitGUID("player") } end
   -- raid pets
   if IsInRaid() then
     for i = 1, 40 do
@@ -16,7 +16,7 @@ local function BuildPetOwnerCache()
       if UnitExists(unit) then
         local petUnit = unit .. "pet"
         local pGuid = UnitGUID(petUnit)
-        if pGuid then petOwnerCache[pGuid] = UnitName(unit) end
+  if pGuid then petOwnerCache[pGuid] = { name = UnitName(unit), guid = UnitGUID(unit) } end
       else
         break
       end
@@ -28,7 +28,7 @@ local function BuildPetOwnerCache()
       if UnitExists(unit) then
         local petUnit = unit .. "pet"
         local pGuid = UnitGUID(petUnit)
-        if pGuid then petOwnerCache[pGuid] = UnitName(unit) end
+  if pGuid then petOwnerCache[pGuid] = { name = UnitName(unit), guid = UnitGUID(unit) } end
       else
         break
       end
@@ -37,8 +37,10 @@ local function BuildPetOwnerCache()
 end
 
 local function ResolvePetOwner(srcGUID)
-  if not srcGUID then return nil end
-  return petOwnerCache[srcGUID]
+  if not srcGUID then return nil, nil end
+  local rec = petOwnerCache[srcGUID]
+  if not rec then return nil, nil end
+  return rec.name, rec.guid
 end
 
 -- Reconcile local player's interrupt cooldowns with the game's cooldowns
@@ -142,13 +144,14 @@ function NS.OnCombatLog(...)
 
     -- resolve source player (handle pet casts)
     local actor = srcName
+    local actorGUID
     if not actor or actor == "" then
-      local owner = ResolvePetOwner(srcGUID)
-      if owner then actor = owner end
+      local ownerName, ownerGuid = ResolvePetOwner(srcGUID)
+      if ownerName then actor = ownerName; actorGUID = ownerGuid end
     else
       -- also handle known pet GUID mapping
-      local owner = ResolvePetOwner(srcGUID)
-      if owner then actor = owner end
+      local ownerName, ownerGuid = ResolvePetOwner(srcGUID)
+      if ownerName then actor = ownerName; actorGUID = ownerGuid end
     end
 
     -- ensure actor is a usable string for downstream APIs
@@ -162,6 +165,19 @@ function NS.OnCombatLog(...)
     if actor == me then
       NS.Assignments_Add(dstGUID, canon, actor, NS.Now(), "cast")
       NS.Comm_SendAssign(dstGUID, canon, actor, NS.Now(), "cast")
+    end
+
+  -- OBSERVER MODE: if enabled, and we're in a party (not raid), create a low-priority 'observed' assignment
+  -- Skip observed assignments for unknown actors
+  if NS.DB and NS.DB.observerMode and IsInGroup() and (not IsInRaid()) and actor ~= me and actor ~= "unknown" then
+      -- avoid stomping any higher-priority assignment from this actor
+      local hasNonObserved = NS.Assignments_HasNonObserved and NS.Assignments_HasNonObserved(actor)
+      if not hasNonObserved then
+    NS:Log("ObserverMode: adding observed assignment", actor, "(guid=", tostring(actorGUID), ") ->", dstGUID, canon)
+    NS.Assignments_Add(dstGUID, canon, actor, NS.Now(), "observed")
+      else
+        NS:Log("ObserverMode: skipping observed for", actor, "existing non-observed assignment present")
+      end
     end
 
     NS.Comm_SendCD(canon, actor or "unknown", NS.Now(), cd)

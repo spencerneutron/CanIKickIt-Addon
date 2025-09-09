@@ -24,6 +24,8 @@ local function applyDefaults(db)
   -- options UI defaults
   if db.showLabels == nil     then db.showLabels     = true end
   if db.labelFontSize == nil  then db.labelFontSize  = 12 end
+  -- observer mode (infer assignments from party members' casts)
+  if db.observerMode == nil   then db.observerMode   = true end
 end
 
 local function OnEvent(_, event, ...)
