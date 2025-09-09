@@ -87,7 +87,7 @@ end)
 -- Checkbox: Enable cooldown sync (broadcast local CD changes)
 local cbSync = CreateFrame("CheckButton", "CanIKickIt_SyncCB", panel, "InterfaceOptionsCheckButtonTemplate")
 -- push the right-column checkbox stack further down so it doesn't collide with the sliders
-cbSync:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", -2, -60)
+cbSync:SetPoint("TOPLEFT", cbDebug, "BOTTOMLEFT", 0, -12)
 cbSync.Text:SetText("Enable cooldown sync")
 cbSync.tooltip = "Broadcast cooldown changes to other addon users when enabled."
 cbSync:SetScript("OnClick", function(self)
@@ -117,7 +117,7 @@ end)
 -- Slider: Icon spacing
 local spacingSlider = CreateFrame("Slider", "CanIKickIt_IconSpacingSlider", panel, "OptionsSliderTemplate")
 spacingSlider:SetWidth(200)
-spacingSlider:SetPoint("TOPLEFT", fontSlider, "BOTTOMLEFT", 0, -28)
+spacingSlider:SetPoint("TOPLEFT", offsetSlider, "BOTTOMLEFT", 0, -28)
 spacingSlider:SetMinMaxValues(0, 16)
 spacingSlider:SetValueStep(1)
 spacingSlider.Text = _G[spacingSlider:GetName() .. "Text"]
