@@ -391,7 +391,7 @@ function NS.Nameplates_Refresh(guid)
     btn.icon:Show()
 
     -- label (first 4 chars of player name, if available)
-    if a.displayName and a.displayName ~= "" then
+    if a.displayName and a.displayName ~= "" and NS.DB.showLabels == true then
       if btn.label then
         btn.label:SetText(a.displayName)
         btn.label:Show()
