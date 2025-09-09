@@ -135,8 +135,8 @@ function NS.AssignIntentCore(spellID)
     NS:Log("AssignIntent: no GUID for unit", unit)
     return
   end
-
-  local player = UnitName("player")
+  
+  local player = UnitName("player") or "player"
   local ts = NS.Now()
 
   -- apply locally as macro (macro-locked) and broadcast

@@ -151,6 +151,9 @@ function NS.OnCombatLog(...)
       if owner then actor = owner end
     end
 
+    -- ensure actor is a usable string for downstream APIs
+    actor = actor or "unknown"
+
     local cd = NS.GetBaseCD(canon)       -- Cooldowns.lua can adjust per class/spec if needed
     NS.Cooldowns_Start(actor, canon, cd)
 

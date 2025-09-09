@@ -103,26 +103,43 @@ function NS.Assignments_Add(guid, spellID, player, ts, source)
   NS:Log("Assignments_Add", guid, spellID, player, ts, source)
   source = source or "cast"
   -- If this player already has a macro-locked assignment, ignore non-macro updates
+  local toPurge = {}
   for g, list in pairs(assignments) do
-    for i = #list, 1, -1 do
+    for i = 1, #list do
       if list[i].player == player and list[i].source == "macro" and source ~= "macro" then
         NS:Log("Assignments_Add: player has macro-locked assignment; ignoring non-macro update", player)
         return
       end
+      if list[i].player == player then
+        toPurge[g] = true
+        break
+      end
     end
   end
 
-  -- Purge any previous assignments for this player
-  for g, list in pairs(assignments) do
-    for i = #list, 1, -1 do
-      if list[i].player == player then
-        table.remove(list, i)
-        dirty[g] = true
+  -- Purge any previous assignments for this player (only the guids that contained matches)
+  for g in pairs(toPurge) do
+    local list = assignments[g]
+    if list then
+      for i = #list, 1, -1 do
+        if list[i].player == player then
+          table.remove(list, i)
+          dirty[g] = true
+        end
       end
     end
   end
   assignments[guid] = assignments[guid] or {}
-  table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts, source = source })
+
+  -- derive a short display name (first 4 chars) if we have a string player identifier
+  local displayName
+  if type(player) == "string" and player ~= "" then
+    local plainName = player:match("^[^-]+") or player -- strip realm if present
+    displayName = plainName:sub(1, 4)
+    displayName = displayName:upper()
+  end
+
+  table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts, source = source, displayName = displayName })
   dirty[guid] = true
   scheduleFlush()
 end
@@ -256,6 +273,13 @@ local function AcquireIcon(parent, index)
     btn.lock:SetTexture(lockTex)
     btn.lock:Hide()
 
+    -- small label above the icon for the first four letters of the player name
+    btn.label = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    btn.label:SetPoint("BOTTOM", btn, "TOP", 0, 2)
+    btn.label:SetJustifyH("CENTER")
+    btn.label:SetTextColor(1, 1, 1, 1)
+    btn.label:Hide()
+
     parent.icons[index] = btn
   else
     NS:Log("AcquireIcon reuse", index)
@@ -347,6 +371,16 @@ function NS.Nameplates_Refresh(guid)
     local iconTex = SpellIcon(a.spellID, guid)
     btn.icon:SetTexture(iconTex)
     btn.icon:Show()
+
+    -- label (first 4 chars of player name, if available)
+    if a.displayName and a.displayName ~= "" then
+      if btn.label then
+        btn.label:SetText(a.displayName)
+        btn.label:Show()
+      end
+    else
+      if btn.label then btn.label:Hide() end
+    end
 
     -- lock indicator for macro assignments
     if a.source == "macro" then
