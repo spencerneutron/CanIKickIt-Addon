@@ -250,6 +250,7 @@ local function AcquireIcon(parent, index)
     btn.lock = btn:CreateTexture(nil, "OVERLAY")
     btn.lock:SetSize(8, 8)
     btn.lock:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+    
     -- use a built-in lock icon file id if available, fallback to white square
     local lockTex = 136710 -- UI-Panel-Button-Play (approx); it's fine as a placeholder
     btn.lock:SetTexture(lockTex)

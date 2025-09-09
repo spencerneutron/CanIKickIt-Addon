@@ -124,12 +124,7 @@ function NS.AssignIntentCore(spellID)
   end
 
   -- prefer hostile focus, then hostile target
-  local unit = nil
-  if UnitExists("focus") and UnitCanAttack("player", "focus") then
-    unit = "focus"
-  elseif UnitExists("target") and UnitCanAttack("player", "target") then
-    unit = "target"
-  end
+  local unit = NS.FirstHostileUnit()
   if not unit then
     NS:Log("AssignIntent: no hostile focus or target")
     return

@@ -1,6 +1,6 @@
 local NS = select(2, ...)
 
-local function FirstHostileUnit()
+function NS.FirstHostileUnit()
   if UnitExists("focus") and UnitCanAttack("player","focus") then return "focus" end
   if UnitExists("target") and UnitCanAttack("player","target") then return "target" end
   return nil
