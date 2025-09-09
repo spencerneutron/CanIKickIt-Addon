@@ -53,6 +53,7 @@ local function OnEvent(_, event, ...)
       E:RegisterEvent("PLAYER_LOGOUT")
 
       NS.InitConfig() -- if you have UI bits; keep it pure (no world calls)
+  if NS.InitOptions then NS.InitOptions() end
       NS:Log("ADDON_LOADED ok")
     end
 
