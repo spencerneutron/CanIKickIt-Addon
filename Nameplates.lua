@@ -141,6 +141,12 @@ function NS.Nameplates_OnAdded(unit)
   NS:Log("Nameplates_OnAdded", unit, guid)
   if not guid then return end
 
+  -- quick exit for non-hostile units (avoid expensive plate lookups)
+  if not UnitCanAttack("player", unit) then
+    NS:Log("Nameplates_OnAdded: skipping non-hostile unit", unit)
+    return
+  end
+
   local plate = GetPlate(unit)
   if not plate then
     NS:Log("Nameplates_OnAdded no plate for unit", unit)
@@ -167,7 +173,14 @@ end
 function NS.Nameplates_OnRemoved(unit)
   local guid = UnitGUID(unit)
   NS:Log("Nameplates_OnRemoved", unit, guid)
+
+  -- if we have no visuals for this guid and the unit is non-hostile, skip quickly
   local f = pool[guid]
+  if not f and not UnitCanAttack("player", unit) then
+    NS:Log("Nameplates_OnRemoved: skipping non-hostile/unit without pool", unit)
+    return
+  end
+
   if not f then return end
   for _, btn in ipairs(f.icons) do
     btn:Hide()
