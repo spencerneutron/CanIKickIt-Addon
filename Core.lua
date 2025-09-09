@@ -10,6 +10,11 @@ NS.VERSION    = "0.1.0"
 CanIKickItDB = CanIKickItDB or {}
 NS.DB = CanIKickItDB
 
+-- persisted UI defaults
+NS.DB.iconAnchor  = NS.DB.iconAnchor  or "right"   -- "right" (extend right) or "left" (extend left)
+NS.DB.iconSpacing = NS.DB.iconSpacing or 2
+NS.DB.iconSize    = NS.DB.iconSize or 18
+
 -- simple logger (guarded)
 function NS:Log(...)
   if NS.DB.debug then

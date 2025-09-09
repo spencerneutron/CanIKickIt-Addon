@@ -167,7 +167,11 @@ function NS.Nameplates_OnAdded(unit)
   -- IMPORTANT: parent to the plate ROOT (not UnitFrame) to avoid 3rd-party clipping/fading
   local parentAnchor = plate.UnitFrame or plate
   local f = CreateFrame("Frame", nil, plate)  -- parent = plate (root)
-  f:SetPoint("LEFT", parentAnchor, "RIGHT", 6, 0) -- anchor to UnitFrame if it exists
+  if (NS.DB and NS.DB.iconAnchor) == "left" then
+    f:SetPoint("RIGHT", parentAnchor, "LEFT", -6, 0)
+  else
+    f:SetPoint("LEFT", parentAnchor, "RIGHT", 6, 0)
+  end
   f:SetSize(1, 1)
   f.icons = {}
 
@@ -257,10 +261,21 @@ local function AcquireIcon(parent, index)
   end
 
   btn:ClearAllPoints()
-  if index == 1 then
-    btn:SetPoint("LEFT", parent, "LEFT", 0, 0)
+  local anchor = (NS.DB and NS.DB.iconAnchor) or "right"
+  local spacing = NS.DB.iconSpacing or 2
+
+  if anchor == "left" then
+    if index == 1 then
+      btn:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
+    else
+      btn:SetPoint("RIGHT", parent.icons[index - 1], "LEFT", -spacing, 0)
+    end
   else
-    btn:SetPoint("LEFT", parent.icons[index - 1], "RIGHT", NS.DB.iconSpacing or 2, 0)
+    if index == 1 then
+      btn:SetPoint("LEFT", parent, "LEFT", 0, 0)
+    else
+      btn:SetPoint("LEFT", parent.icons[index - 1], "RIGHT", spacing, 0)
+    end
   end
   btn:Show()
   btn:SetAlpha(1)
@@ -310,7 +325,18 @@ function NS.Nameplates_Refresh(guid)
   if not f then return end
 
   local list = assignments[guid] or {}
-  table.sort(list, function(a, b) return a.ts < b.ts end)
+  table.sort(list, function(a, b)
+    -- primary: ascending base cooldown (unknown = treat as large)
+    local aCD = (NS.GetBaseCD and NS.GetBaseCD(a.spellID)) or math.huge
+    local bCD = (NS.GetBaseCD and NS.GetBaseCD(b.spellID)) or math.huge
+    if aCD ~= bCD then return aCD < bCD end
+    -- tie-break: lower numeric spellID
+    local aID = tonumber(a.spellID) or math.huge
+    local bID = tonumber(b.spellID) or math.huge
+    if aID ~= bID then return aID < bID end
+    -- final tie-break: received order (timestamp)
+    return (a.ts or 0) < (b.ts or 0)
+  end)
 
   local idx = 1
   for _, a in ipairs(list) do
@@ -381,4 +407,11 @@ SlashCmdList.CIKI_TEX = function(msg)
   t:SetAllPoints(true)
   t:SetTexture(QUESTION_MARK_FILEID)
   print("CIKI: drew test icon on", unit)
+end
+
+SLASH_CIKI_ANCHOR1 = "/cikianchor"
+SlashCmdList.CIKI_ANCHOR = function()
+  NS.DB.iconAnchor = (NS.DB.iconAnchor == "left") and "right" or "left"
+  print("CIKI: icon anchor set to", NS.DB.iconAnchor)
+  NS.Nameplates_RefreshAll()
 end
