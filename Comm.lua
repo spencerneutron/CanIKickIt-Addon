@@ -23,15 +23,16 @@ local function GetDist()
   return nil
 end
 
-function NS.Comm_SendAssign(guid, spellID, player, ts)
+function NS.Comm_SendAssign(guid, spellID, player, ts, source)
   local dist = GetDist()
   if not dist then
     NS:Log("Comm_SendAssign: no distribution available; not sending", guid, spellID, player)
     return
   end
   local canon = NS.ResolveSpellID(spellID) or spellID
-  local payload = NS.Encode({"assign", guid, canon, player, ts})
-  NS:Log("Comm_SendAssign: sending", guid, canon, player, "dist="..tostring(dist))
+  source = source or "cast"
+  local payload = NS.Encode({"assign", guid, canon, player, ts, source})
+  NS:Log("Comm_SendAssign: sending", guid, canon, player, "source="..tostring(source), "dist="..tostring(dist))
   NS:SendCommMessage(NS.PREFIX, payload, dist)
   NS:Log("TX assign", guid, canon, player)
 end
@@ -78,11 +79,11 @@ function NS:Comm_OnMessage(prefix, msg, dist, sender)
   local t = parts[1]
 
   if t == "assign" then
-    local guid, spellID, player, ts = parts[2], tonumber(parts[3]), parts[4], tonumber(parts[5])
+    local guid, spellID, player, ts, source = parts[2], tonumber(parts[3]), parts[4], tonumber(parts[5]), parts[6]
     -- only handle assigns from other players (ignore our own echoes)
     if player ~= me then
-      NS:Log("RX assign", guid, spellID, player, sender)
-      NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
+      NS:Log("RX assign", guid, spellID, player, "source="..tostring(source), sender)
+      NS.Assignments_OnRemoteAssign(guid, spellID, player, ts, source)
     else
       NS:Log("Ignored assign from self", guid, spellID, player, sender)
     end

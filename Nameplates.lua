@@ -99,8 +99,19 @@ end
 -- -----------------------------------------------------------------------------
 -- Assignment management
 -- -----------------------------------------------------------------------------
-function NS.Assignments_Add(guid, spellID, player, ts)
-  NS:Log("Assignments_Add", guid, spellID, player, ts)
+function NS.Assignments_Add(guid, spellID, player, ts, source)
+  NS:Log("Assignments_Add", guid, spellID, player, ts, source)
+  source = source or "cast"
+  -- If this player already has a macro-locked assignment, ignore non-macro updates
+  for g, list in pairs(assignments) do
+    for i = #list, 1, -1 do
+      if list[i].player == player and list[i].source == "macro" and source ~= "macro" then
+        NS:Log("Assignments_Add: player has macro-locked assignment; ignoring non-macro update", player)
+        return
+      end
+    end
+  end
+
   -- Purge any previous assignments for this player
   for g, list in pairs(assignments) do
     for i = #list, 1, -1 do
@@ -111,14 +122,14 @@ function NS.Assignments_Add(guid, spellID, player, ts)
     end
   end
   assignments[guid] = assignments[guid] or {}
-  table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts })
+  table.insert(assignments[guid], { player = player, spellID = spellID, ts = ts, source = source })
   dirty[guid] = true
   scheduleFlush()
 end
 
-function NS.Assignments_OnRemoteAssign(guid, spellID, player, ts)
-  NS:Log("Assignments_OnRemoteAssign", guid, spellID, player, ts)
-  NS.Assignments_Add(guid, tonumber(spellID), player, tonumber(ts))
+function NS.Assignments_OnRemoteAssign(guid, spellID, player, ts, source)
+  NS:Log("Assignments_OnRemoteAssign", guid, spellID, player, ts, source)
+  NS.Assignments_Add(guid, tonumber(spellID), player, tonumber(ts), source or "remote")
 end
 
 -- Optional: clear transient state (used by Core.ClearTransientState)
@@ -231,6 +242,15 @@ local function AcquireIcon(parent, index)
     btn.cd:SetAllPoints(true)
     btn.cd:SetAlpha(1)
 
+    -- lock indicator for macro-assigned intents
+    btn.lock = btn:CreateTexture(nil, "OVERLAY")
+    btn.lock:SetSize(8, 8)
+    btn.lock:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+    -- use a built-in lock icon file id if available, fallback to white square
+    local lockTex = 136710 -- UI-Panel-Button-Play (approx); it's fine as a placeholder
+    btn.lock:SetTexture(lockTex)
+    btn.lock:Hide()
+
     parent.icons[index] = btn
   else
     NS:Log("AcquireIcon reuse", index)
@@ -300,6 +320,13 @@ function NS.Nameplates_Refresh(guid)
     local iconTex = SpellIcon(a.spellID, guid)
     btn.icon:SetTexture(iconTex)
     btn.icon:Show()
+
+    -- lock indicator for macro assignments
+    if a.source == "macro" then
+      if btn.lock then btn.lock:Show() end
+    else
+      if btn.lock then btn.lock:Hide() end
+    end
 
     -- cooldown (set once; CooldownFrame animates itself)
     local s, d = NS.Cooldowns_GetInfo(a.player, a.spellID)

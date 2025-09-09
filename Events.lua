@@ -153,6 +153,14 @@ function NS.OnCombatLog(...)
 
     local cd = NS.GetBaseCD(canon)       -- Cooldowns.lua can adjust per class/spec if needed
     NS.Cooldowns_Start(actor, canon, cd)
+
+    -- If this is the local player (or their pet), create a local 'cast' assignment and broadcast
+    local me = UnitName("player")
+    if actor == me then
+      NS.Assignments_Add(dstGUID, canon, actor, NS.Now(), "cast")
+      NS.Comm_SendAssign(dstGUID, canon, actor, NS.Now(), "cast")
+    end
+
     NS.Comm_SendCD(canon, actor or "unknown", NS.Now(), cd)
     -- If dstGUID is hostile mob, update strip ordering
     if dstGUID then NS.Nameplates_OnInterruptCast(dstGUID, actor, canon) end

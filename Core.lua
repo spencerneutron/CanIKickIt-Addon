@@ -99,3 +99,44 @@ function NS.ClearTransientState()
     NS.Assignments_Clear()
   end
 end
+
+function NS.AssignIntentCore(spellID)
+  -- prefer explicit spellID, then preferred interrupt, then bail
+  local sid = spellID or (NS._preferredInterrupt and NS._preferredInterrupt.spellID)
+  sid = NS.ResolveSpellID(sid) or sid
+  sid = tonumber(sid)
+  if not sid then
+    NS:Log("AssignIntent: no valid spellID provided")
+    return
+  end
+
+  -- prefer hostile focus, then hostile target
+  local unit = nil
+  if UnitExists("focus") and UnitCanAttack("player", "focus") then
+    unit = "focus"
+  elseif UnitExists("target") and UnitCanAttack("player", "target") then
+    unit = "target"
+  end
+  if not unit then
+    NS:Log("AssignIntent: no hostile focus or target")
+    return
+  end
+
+  local guid = UnitGUID(unit)
+  if not guid then
+    NS:Log("AssignIntent: no GUID for unit", unit)
+    return
+  end
+
+  local player = UnitName("player")
+  local ts = NS.Now()
+
+  -- apply locally as macro (macro-locked) and broadcast
+  if NS.Assignments_Add then
+    NS.Assignments_Add(guid, sid, player, ts, "macro")
+  end
+  if NS.Comm_SendAssign then
+    NS.Comm_SendAssign(guid, sid, player, ts, "macro")
+  end
+  NS:Log("AssignIntent: assigned", guid, sid, player, "unit="..tostring(unit))
+end

@@ -7,20 +7,10 @@ local function FirstHostileUnit()
 end
 
 function NS.AssignIntent()
-  local unit
-  if UnitExists("focus") and UnitCanAttack("player","focus") then unit = "focus"
-  elseif UnitExists("target") and UnitCanAttack("player","target") then unit = "target" end
-  if not unit then NS:Log("No hostile focus/target") return end
-
-  local guid = UnitGUID(unit)
-  if not guid then return end
-
-  local intr = NS.GetPreferredInterruptForPlayer()
-  if not intr then NS:Log("No applicable interrupt for class/spec") return end
-
-  local player = UnitName("player")
-  local ts = NS.Now()
-  NS.Assignments_Add(guid, intr.spellID, player, ts)
-  NS.Comm_SendAssign(guid, intr.spellID, player, ts)
-  NS:Log(("Assigned %s (%d) to %s"):format(intr.name, intr.spellID, guid or "?"))
+  -- preserve the original parameterless API; delegate to AssignIntentCore
+  if NS.AssignIntentCore then
+    NS.AssignIntentCore()
+  else
+    NS:Log("AssignIntent: core helper missing")
+  end
 end
